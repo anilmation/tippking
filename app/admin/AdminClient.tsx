@@ -37,9 +37,9 @@ export default function AdminClient({
     await supabase.from('matches').update({
       home_score: s.home !== '' ? parseInt(s.home) : null,
       away_score: s.away !== '' ? parseInt(s.away) : null,
-      status: s.status,
-      updated_at: new Date().toISOString()
-    }).eq('id', matchId)
+      status: s.status as 'SCHEDULED' | 'LIVE' | 'FINISHED',
+      updated_at: new Date().toISOString(),
+    } as any).eq('id', matchId)
     setSaving(null)
   }
 
@@ -48,10 +48,9 @@ export default function AdminClient({
     await supabase.from('special_questions').update({
       answer: answer || null,
       is_open: !answer
-    }).eq('id', questionId)
+    } as any).eq('id', questionId)
 
     if (answer) {
-      // Award points: exact match = full points, else 0
       const { data: tips } = await supabase
         .from('special_tips')
         .select('id, answer')
@@ -65,7 +64,7 @@ export default function AdminClient({
       if (tips && q) {
         for (const tip of tips) {
           const pts = tip.answer.toLowerCase().trim() === answer.toLowerCase().trim() ? q.points_value : 0
-          await supabase.from('special_tips').update({ points: pts }).eq('id', tip.id)
+          await supabase.from('special_tips').update({ points: pts } as any).eq('id', tip.id)
         }
       }
     }
@@ -91,7 +90,6 @@ export default function AdminClient({
     <div className="animate-fade-in space-y-4">
       <h1 className="font-display text-3xl font-bold">⚙️ Admin</h1>
 
-      {/* Tabs */}
       <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
         {[
           { key: 'matches', label: 'Spielergebnisse' },
@@ -107,7 +105,6 @@ export default function AdminClient({
         ))}
       </div>
 
-      {/* Match Results */}
       {tab === 'matches' && (
         <div className="space-y-2">
           {matches.map(match => {
@@ -143,7 +140,6 @@ export default function AdminClient({
         </div>
       )}
 
-      {/* Special Answers */}
       {tab === 'special' && (
         <div className="space-y-3">
           {questions.map(q => (
@@ -167,13 +163,11 @@ export default function AdminClient({
         </div>
       )}
 
-      {/* Sync */}
       {tab === 'sync' && (
         <div className="card space-y-4">
           <h2 className="font-display text-xl font-bold">football-data.org Sync</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Synchronisiert alle Spiele und Teams der WM 2026 automatisch von der football-data.org API.
-            Vercel Cron macht das täglich — hier kannst du es manuell auslösen.
           </p>
           <button onClick={syncMatches} disabled={syncing} className="btn-primary px-6 py-3">
             {syncing ? '⟳ Synchronisiere...' : '⟳ Jetzt synchronisieren'}
