@@ -59,9 +59,6 @@ export default function TippsPage() {
     const p = new Map<number, { home: string; away: string }>()
     tipData?.forEach((t: any) => p.set(t.match_id, { home: String(t.home_score), away: String(t.away_score) }))
     setPending(p)
-    const withScore = new Set<number>()
-    tipData?.forEach((t: any) => withScore.add(t.match_id))
-    setShowScore(withScore)
     setLoading(false)
   }
 
@@ -94,7 +91,9 @@ export default function TippsPage() {
     setSaving(matchId)
     const payload = { user_id: userId, match_id: matchId, home_score: parseInt(scores.home), away_score: parseInt(scores.away) }
     await supabase.from('tips').upsert(payload as any, { onConflict: 'user_id,match_id' })
-    await loadData()
+    // Update local tips state without full reload (prevents showScore reset)
+    const { data: newTip } = await supabase.from('tips').select('*').eq('user_id', userId).eq('match_id', matchId).single()
+    if (newTip) setTips(prev => { const n = new Map(prev); n.set(matchId, newTip); return n })
     setSaving(null)
     setSaved(matchId)
     setTimeout(() => setSaved(null), 2000)
@@ -106,7 +105,8 @@ export default function TippsPage() {
     setSaving(matchId)
     const payload = { user_id: userId, match_id: matchId, home_score: parseInt(p.home), away_score: parseInt(p.away) }
     await supabase.from('tips').upsert(payload as any, { onConflict: 'user_id,match_id' })
-    await loadData()
+    const { data: newTip } = await supabase.from('tips').select('*').eq('user_id', userId).eq('match_id', matchId).single()
+    if (newTip) setTips(prev => { const n = new Map(prev); n.set(matchId, newTip); return n })
     setSaving(null)
     setSaved(matchId)
     setTimeout(() => setSaved(null), 2000)
