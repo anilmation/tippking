@@ -26,6 +26,7 @@ export type Match = {
   matchday: number | null
   kickoff: string
   status: 'SCHEDULED' | 'LIVE' | 'FINISHED'
+  updated_at?: string
   home_team?: Team
   away_team?: Team
 }
@@ -75,18 +76,21 @@ export type MatchWithTip = Match & {
   tip?: Tip
 }
 
+// Loose database type — avoids strict Update<never> conflicts
 export type Database = {
   public: {
     Tables: {
-      profiles: { Row: Profile; Insert: Omit<Profile, 'created_at'>; Update: Partial<Profile> }
-      teams: { Row: Team; Insert: Omit<Team, 'id'>; Update: Partial<Team> }
-      matches: { Row: Match; Insert: Omit<Match, 'id'>; Update: Partial<Match> }
-      tips: { Row: Tip; Insert: Omit<Tip, 'id' | 'points' | 'created_at' | 'updated_at'>; Update: Partial<Tip> }
-      special_questions: { Row: SpecialQuestion; Insert: Omit<SpecialQuestion, 'id'>; Update: Partial<SpecialQuestion> }
-      special_tips: { Row: SpecialTip; Insert: Omit<SpecialTip, 'id' | 'points' | 'created_at'>; Update: Partial<SpecialTip> }
+      profiles: { Row: Profile; Insert: Partial<Profile>; Update: Partial<Profile> }
+      teams: { Row: Team; Insert: Partial<Team>; Update: Partial<Team> }
+      matches: { Row: Match; Insert: Partial<Match>; Update: Partial<Match> }
+      tips: { Row: Tip; Insert: Partial<Tip>; Update: Partial<Tip> }
+      special_questions: { Row: SpecialQuestion; Insert: Partial<SpecialQuestion>; Update: Partial<SpecialQuestion> }
+      special_tips: { Row: SpecialTip; Insert: Partial<SpecialTip>; Update: Partial<SpecialTip> }
     }
     Views: {
       leaderboard: { Row: LeaderboardEntry }
     }
+    Functions: Record<string, unknown>
+    Enums: Record<string, unknown>
   }
 }
