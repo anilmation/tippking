@@ -151,9 +151,15 @@ export default function TippsPage() {
           const awayName = getCountryName(match.away_team?.code) || match.away_team?.name || '?'
           const homeFlag = getFlagUrl(match.home_team?.code)
           const awayFlag = getFlagUrl(match.away_team?.code)
-          // Placeholder teams have codes starting with W_, RU_, T3_, L_
-          const isPlaceholder = (code: string) => /^(W_|RU_|T3_|L_)/.test(code ?? '')
-          const matchIsUnknown = isPlaceholder(match.home_team?.code) || isPlaceholder(match.away_team?.code)
+          // Placeholder: code starts with W_, RU_, T3_, L_ OR name contains "Sieger"/"Zweiter"/"Verlierer"/"Dritter"
+          const isPlaceholder = (team: any) => {
+            if (!team) return true
+            const code = team.code ?? ''
+            const name = team.name ?? ''
+            return /^(W_|RU_|T3_|L_)/.test(code) ||
+              ['Sieger', 'Zweiter', 'Verlierer', 'Dritter'].some(w => name.includes(w))
+          }
+          const matchIsUnknown = isPlaceholder(match.home_team) || isPlaceholder(match.away_team)
 
           // Stage label without "Gruppe" prefix since we show group_name separately
           const stageDisplay = match.stage === 'GROUP'
