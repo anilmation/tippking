@@ -1,11 +1,12 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
-import { format, isAfter, isBefore, addMinutes } from 'date-fns'
+import { format, isBefore } from 'date-fns'
 import { de } from 'date-fns/locale'
 import type { Match, Tip, Team } from '@/lib/types'
-import clsx from 'clsx'
+import { TeamName } from '@/components/ui/TeamName'
 import { useRouter } from 'next/navigation'
+import clsx from 'clsx'
 
 type MatchWithTeams = Match & { home_team: Team; away_team: Team }
 
@@ -21,6 +22,7 @@ export default function TippsPage() {
   const [stage, setStage] = useState('Alle')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<number | null>(null)
+  const [saved, setSaved] = useState<number | null>(null)
   const [pendingTips, setPendingTips] = useState<Map<number, { home: string; away: string }>>(new Map())
   const [userId, setUserId] = useState<string | null>(null)
   const supabase = createClient()
@@ -33,10 +35,7 @@ export default function TippsPage() {
     })
   }, [])
 
-  useEffect(() => {
-    if (!userId) return
-    loadData()
-  }, [userId])
+  useEffect(() => { if (userId) loadData() }, [userId])
 
   async function loadData() {
     setLoading(true)
@@ -44,17 +43,10 @@ export default function TippsPage() {
       .from('matches')
       .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
       .order('kickoff')
-
-    const { data: tipData } = await supabase
-      .from('tips')
-      .select('*')
-      .eq('user_id', userId)
-
+    const { data: tipData } = await supabase.from('tips').select('*').eq('user_id', userId)
     setMatches((matchData as any) ?? [])
     const tipsMap = new Map(tipData?.map(t => [t.match_id, t]) ?? [])
     setTips(tipsMap)
-
-    // Init pending from existing tips
     const pending = new Map<number, { home: string; away: string }>()
     tipData?.forEach(t => pending.set(t.match_id, { home: String(t.home_score), away: String(t.away_score) }))
     setPendingTips(pending)
@@ -76,167 +68,138 @@ export default function TippsPage() {
     const homeScore = parseInt(pending.home)
     const awayScore = parseInt(pending.away)
     if (isNaN(homeScore) || isNaN(awayScore)) return
-
     setSaving(matchId)
     const existing = tips.get(matchId)
     const payload = { user_id: userId, match_id: matchId, home_score: homeScore, away_score: awayScore }
-
     if (existing) {
-      await supabase.from('tips').update(payload).eq('id', existing.id)
+      await supabase.from('tips').update(payload as any).eq('id', existing.id)
     } else {
-      await supabase.from('tips').insert(payload)
+      await supabase.from('tips').insert(payload as any)
     }
     await loadData()
     setSaving(null)
+    setSaved(matchId)
+    setTimeout(() => setSaved(null), 2000)
   }
 
   const filtered = stage === 'Alle' ? matches : matches.filter(m => m.stage === stage)
   const now = new Date()
 
   if (loading) return (
-    <div className="flex items-center justify-center py-20 text-slate-400">
-      <div className="text-center"><div className="text-4xl mb-2 animate-pulse-slow">⚽</div><p>Lade Spiele...</p></div>
+    <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--pitch-muted)' }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>⚽</div>
+      <p>Lade Spiele...</p>
     </div>
   )
 
   return (
-    <div className="animate-fade-in space-y-4">
-      <h1 className="font-display text-3xl font-bold">Meine Tipps</h1>
+    <div className="animate-fade-in" style={{ maxWidth: 720, margin: '0 auto' }}>
+      <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 700, marginBottom: 4 }}>MEINE TIPPS</h1>
+      <p style={{ color: 'var(--pitch-muted)', fontSize: 13, marginBottom: 20 }}>
+        {matches.filter(m => !tips.has(m.id) && m.status === 'SCHEDULED').length} offene Tipps
+      </p>
 
       {/* Stage filter */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 16 }}>
         {STAGES.map(s => (
-          <button
-            key={s}
-            onClick={() => setStage(s)}
-            className={clsx(
-              'shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
-              stage === s
-                ? 'bg-pitch-600 text-white'
-                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
-            )}
-          >
+          <button key={s} onClick={() => setStage(s)} style={{
+            flexShrink: 0, padding: '6px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+            border: 'none', cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'var(--font-body)',
+            background: stage === s ? 'var(--pitch-green)' : 'var(--pitch-surface)',
+            color: stage === s ? '#fff' : 'var(--pitch-muted)',
+            outline: stage === s ? 'none' : '1px solid var(--pitch-border)',
+          }}>
             {STAGE_LABELS[s]}
           </button>
         ))}
       </div>
 
       {/* Matches */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-12 text-slate-400">Keine Spiele in dieser Runde</div>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map(match => {
-            const kickoff = new Date(match.kickoff)
-            const isLocked = isBefore(kickoff, now) // Can't tip after kickoff
-            const isLive = match.status === 'LIVE'
-            const isFinished = match.status === 'FINISHED'
-            const tip = tips.get(match.id)
-            const pending = pendingTips.get(match.id)
-            const hasChanges = tip
-              ? String(tip.home_score) !== pending?.home || String(tip.away_score) !== pending?.away
-              : (pending?.home ?? '') !== '' || (pending?.away ?? '') !== ''
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {filtered.map(match => {
+          const kickoff = new Date(match.kickoff)
+          const isLocked = isBefore(kickoff, now)
+          const isLive = match.status === 'LIVE'
+          const isFinished = match.status === 'FINISHED'
+          const tip = tips.get(match.id)
+          const pending = pendingTips.get(match.id)
+          const hasChanges = tip
+            ? String(tip.home_score) !== pending?.home || String(tip.away_score) !== pending?.away
+            : (pending?.home ?? '') !== '' || (pending?.away ?? '') !== ''
 
-            return (
-              <div key={match.id} className={clsx(
-                'card transition-all',
-                isLive && 'border-red-400 dark:border-red-600 shadow-red-100 dark:shadow-red-900/20 shadow-md',
-                isFinished && 'opacity-80'
-              )}>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="stage-tag">{STAGE_LABELS[match.stage]}</span>
-                  {match.group_name && <span className="text-xs text-slate-500">Gruppe {match.group_name}</span>}
-                  {isLive && <span className="badge-live"><span className="live-dot" />LIVE</span>}
-                  {isFinished && <span className="badge-finished">Beendet</span>}
-                  <span className="ml-auto text-xs text-slate-500">
-                    {format(kickoff, "dd. MMM, HH:mm 'Uhr'", { locale: de })}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {/* Home team */}
-                  <div className="flex-1 text-right">
-                    <span className="font-semibold text-sm">{match.home_team?.name}</span>
-                  </div>
-
-                  {/* Score / Tipp */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    {isFinished || isLive ? (
-                      <>
-                        <div className="font-display text-2xl font-bold w-10 text-center text-pitch-700 dark:text-pitch-400">
-                          {match.home_score ?? '–'}
-                        </div>
-                        <div className="text-slate-400">:</div>
-                        <div className="font-display text-2xl font-bold w-10 text-center text-pitch-700 dark:text-pitch-400">
-                          {match.away_score ?? '–'}
-                        </div>
-                      </>
-                    ) : !isLocked ? (
-                      <>
-                        <input
-                          type="number"
-                          min={0} max={20}
-                          value={pending?.home ?? ''}
-                          onChange={e => updatePending(match.id, 'home', e.target.value)}
-                          className="score-input"
-                          placeholder="–"
-                        />
-                        <div className="text-slate-400 font-bold">:</div>
-                        <input
-                          type="number"
-                          min={0} max={20}
-                          value={pending?.away ?? ''}
-                          onChange={e => updatePending(match.id, 'away', e.target.value)}
-                          className="score-input"
-                          placeholder="–"
-                        />
-                      </>
-                    ) : (
-                      <>
-                        <div className="font-display text-xl font-bold w-10 text-center text-slate-400">
-                          {tip?.home_score ?? '–'}
-                        </div>
-                        <div className="text-slate-300">:</div>
-                        <div className="font-display text-xl font-bold w-10 text-center text-slate-400">
-                          {tip?.away_score ?? '–'}
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Away team */}
-                  <div className="flex-1">
-                    <span className="font-semibold text-sm">{match.away_team?.name}</span>
-                  </div>
-                </div>
-
-                {/* Tip result */}
-                {isFinished && tip && (
-                  <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-sm">
-                    <span className="text-slate-500">Mein Tipp: <strong>{tip.home_score}:{tip.away_score}</strong></span>
-                    <span className={clsx('font-display font-bold', tip.points > 0 ? 'text-pitch-500' : 'text-red-400')}>
-                      +{tip.points} Punkte
-                    </span>
-                  </div>
-                )}
-
-                {/* Save button */}
-                {!isLocked && !isFinished && hasChanges && (
-                  <div className="mt-3 flex justify-end">
-                    <button
-                      onClick={() => saveTip(match.id)}
-                      disabled={saving === match.id}
-                      className="btn-primary text-sm py-1.5 px-4"
-                    >
-                      {saving === match.id ? 'Speichere...' : tip ? 'Tipp aktualisieren' : 'Tipp speichern'}
-                    </button>
-                  </div>
-                )}
+          return (
+            <div key={match.id} className="card" style={{
+              borderLeft: isLive ? '3px solid #ef4444' : tip ? '3px solid var(--pitch-green)' : '3px solid transparent',
+              opacity: isFinished ? 0.85 : 1,
+            }}>
+              {/* Header row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                <span className="stage-tag">{STAGE_LABELS[match.stage]}</span>
+                {match.group_name && <span style={{ fontSize: 11, color: 'var(--pitch-muted)' }}>Gruppe {match.group_name}</span>}
+                {isLive && <span className="badge-live"><span className="live-dot" />LIVE</span>}
+                {isFinished && <span className="badge-finished">Beendet</span>}
+                <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--pitch-muted)' }}>
+                  {format(kickoff, "EEE, dd. MMM · HH:mm 'Uhr'", { locale: de })}
+                </span>
               </div>
-            )
-          })}
-        </div>
-      )}
+
+              {/* Match row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {/* Home */}
+                <div style={{ flex: 1, textAlign: 'right', display: 'flex', justifyContent: 'flex-end' }}>
+                  <TeamName code={match.home_team?.code} name={match.home_team?.name} size="md" align="right" />
+                </div>
+
+                {/* Score */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  {isFinished || isLive ? (
+                    <>
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--pitch-green)', width: 36, textAlign: 'center' }}>{match.home_score ?? '–'}</span>
+                      <span style={{ color: 'var(--pitch-muted)', fontWeight: 700 }}>:</span>
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--pitch-green)', width: 36, textAlign: 'center' }}>{match.away_score ?? '–'}</span>
+                    </>
+                  ) : !isLocked ? (
+                    <>
+                      <input type="number" min={0} max={20} value={pending?.home ?? ''} onChange={e => updatePending(match.id, 'home', e.target.value)} className="score-input" placeholder="–" />
+                      <span style={{ color: 'var(--pitch-muted)', fontWeight: 700, fontSize: 18 }}>:</span>
+                      <input type="number" min={0} max={20} value={pending?.away ?? ''} onChange={e => updatePending(match.id, 'away', e.target.value)} className="score-input" placeholder="–" />
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: 'var(--pitch-muted)', width: 36, textAlign: 'center' }}>{tip?.home_score ?? '–'}</span>
+                      <span style={{ color: 'var(--pitch-muted)' }}>:</span>
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: 'var(--pitch-muted)', width: 36, textAlign: 'center' }}>{tip?.away_score ?? '–'}</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Away */}
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
+                  <TeamName code={match.away_team?.code} name={match.away_team?.name} size="md" align="left" />
+                </div>
+              </div>
+
+              {/* Footer */}
+              {isFinished && tip && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--pitch-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+                  <span style={{ color: 'var(--pitch-muted)' }}>Dein Tipp: <strong>{tip.home_score}:{tip.away_score}</strong></span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: tip.points > 0 ? 'var(--pitch-green)' : '#ef4444' }}>+{tip.points} Punkte</span>
+                </div>
+              )}
+              {!isLocked && !isFinished && hasChanges && (
+                <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                  {saved === match.id
+                    ? <span style={{ fontSize: 13, color: 'var(--pitch-green)', fontWeight: 500 }}>✓ Gespeichert</span>
+                    : <button onClick={() => saveTip(match.id)} disabled={saving === match.id} className="btn-primary" style={{ fontSize: 13, padding: '7px 16px' }}>
+                        {saving === match.id ? 'Speichere...' : tip ? 'Aktualisieren' : 'Tipp speichern'}
+                      </button>
+                  }
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

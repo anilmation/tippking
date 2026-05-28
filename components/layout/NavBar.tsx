@@ -8,10 +8,10 @@ import type { User } from '@supabase/supabase-js'
 import clsx from 'clsx'
 
 const NAV_LINKS = [
-  { href: '/dashboard', label: 'Dashboard', icon: '⚽' },
-  { href: '/tipps', label: 'Meine Tipps', icon: '✏️' },
-  { href: '/sondertipps', label: 'Sondertipps', icon: '🏆' },
-  { href: '/rangliste', label: 'Rangliste', icon: '📊' },
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/tipps', label: 'Tipps' },
+  { href: '/sondertipps', label: 'Sondertipps' },
+  { href: '/rangliste', label: 'Rangliste' },
 ]
 
 export function NavBar() {
@@ -27,77 +27,81 @@ export function NavBar() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark')
-
   return (
-    <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-800">
-      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+    <header style={{
+      position: 'sticky', top: 0, zIndex: 50,
+      background: 'var(--pitch-surface)',
+      borderBottom: '1px solid var(--pitch-border)',
+      backdropFilter: 'blur(8px)',
+    }}>
+      <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 16px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+
         {/* Logo */}
-        <Link href="/" className="font-display text-xl font-bold text-pitch-700 dark:text-pitch-400 tracking-wide">
-          WM<span className="text-gold-500">2026</span>
+        <Link href="/" style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--pitch-text)' }}>
+            TIPP<span style={{ color: 'var(--pitch-green)' }}>KING</span>
+            <span style={{ color: 'var(--pitch-muted)', fontSize: 13, marginLeft: 6, fontWeight: 400 }}>WM 2026</span>
+          </span>
+          <span style={{ fontSize: 9, color: 'var(--pitch-muted)', letterSpacing: '0.06em', marginTop: 1 }}>vibecoded by Anil</span>
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav style={{ display: 'flex', gap: 4, alignItems: 'center' }} className="hidden-mobile">
           {NAV_LINKS.map(link => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={clsx(
-                'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-                pathname.startsWith(link.href)
-                  ? 'bg-pitch-100 dark:bg-pitch-900/40 text-pitch-800 dark:text-pitch-300'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-              )}
-            >
-              {link.icon} {link.label}
+            <Link key={link.href} href={link.href} style={{ textDecoration: 'none' }}>
+              <span style={{
+                padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+                transition: 'all 0.15s',
+                background: pathname.startsWith(link.href) ? 'rgba(22,163,74,0.12)' : 'transparent',
+                color: pathname.startsWith(link.href) ? 'var(--pitch-green)' : 'var(--pitch-muted)',
+                display: 'block',
+              }}>
+                {link.label}
+              </span>
             </Link>
           ))}
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
-            onClick={toggleTheme}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-lg"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--pitch-border)', background: 'var(--pitch-bg)', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="Theme wechseln"
           >
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
 
           {user ? (
-            <div className="relative">
+            <div style={{ position: 'relative' }}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-medium"
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--pitch-border)', background: 'var(--pitch-bg)', cursor: 'pointer', color: 'var(--pitch-text)', fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500 }}
               >
-                <span className="w-6 h-6 rounded-full bg-pitch-500 text-white text-xs flex items-center justify-center">
+                <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--pitch-green)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {user.email?.[0].toUpperCase()}
                 </span>
-                <span className="hidden sm:inline">{user.email?.split('@')[0]}</span>
+                <span className="hidden-mobile">{user.email?.split('@')[0]}</span>
               </button>
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-44 card py-1 z-50">
-                  <Link href="/profil" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">👤 Profil</Link>
-                  <Link href="/admin" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">⚙️ Admin</Link>
-                  <button
-                    onClick={async () => { await supabase.auth.signOut(); setMenuOpen(false) }}
-                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                  >
+                <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 160, background: 'var(--pitch-surface)', border: '1px solid var(--pitch-border)', borderRadius: 10, padding: 6, zIndex: 100 }}>
+                  <Link href="/profil" onClick={() => setMenuOpen(false)} style={{ display: 'block', padding: '7px 10px', borderRadius: 6, fontSize: 13, color: 'var(--pitch-text)', textDecoration: 'none' }}>👤 Profil</Link>
+                  <Link href="/admin" onClick={() => setMenuOpen(false)} style={{ display: 'block', padding: '7px 10px', borderRadius: 6, fontSize: 13, color: 'var(--pitch-text)', textDecoration: 'none' }}>⚙️ Admin</Link>
+                  <button onClick={async () => { await supabase.auth.signOut(); setMenuOpen(false) }}
+                    style={{ width: '100%', textAlign: 'left', padding: '7px 10px', borderRadius: 6, fontSize: 13, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                     🚪 Abmelden
                   </button>
                 </div>
               )}
             </div>
           ) : (
-            <Link href="/auth" className="btn-primary text-sm py-1.5 px-3">Anmelden</Link>
+            <Link href="/auth">
+              <span className="btn-primary" style={{ fontSize: 13, padding: '7px 14px' }}>Anmelden</span>
+            </Link>
           )}
 
-          {/* Mobile menu toggle */}
-          <button
-            className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
+          <button className="show-mobile" onClick={() => setMenuOpen(!menuOpen)}
+            style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--pitch-border)', background: 'var(--pitch-bg)', cursor: 'pointer', fontSize: 18 }}>
             ☰
           </button>
         </div>
@@ -105,24 +109,23 @@ export function NavBar() {
 
       {/* Mobile Nav */}
       {menuOpen && (
-        <nav className="md:hidden border-t border-slate-200 dark:border-slate-800 px-4 py-2 flex flex-col gap-1">
+        <nav className="show-mobile" style={{ borderTop: '1px solid var(--pitch-border)', padding: '8px 16px 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
           {NAV_LINKS.map(link => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMenuOpen(false)}
-              className={clsx(
-                'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                pathname.startsWith(link.href)
-                  ? 'bg-pitch-100 dark:bg-pitch-900/40 text-pitch-800 dark:text-pitch-300'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-              )}
-            >
-              {link.icon} {link.label}
+            <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none' }}>
+              <span style={{
+                display: 'block', padding: '8px 12px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+                background: pathname.startsWith(link.href) ? 'rgba(22,163,74,0.12)' : 'transparent',
+                color: pathname.startsWith(link.href) ? 'var(--pitch-green)' : 'var(--pitch-muted)',
+              }}>{link.label}</span>
             </Link>
           ))}
         </nav>
       )}
+
+      <style>{`
+        @media (min-width: 640px) { .hidden-mobile { display: flex !important; } .show-mobile { display: none !important; } }
+        @media (max-width: 639px) { .hidden-mobile { display: none !important; } .show-mobile { display: flex !important; } }
+      `}</style>
     </header>
   )
 }
