@@ -92,13 +92,8 @@ export default function TippsPage() {
     setShowScore(prev => { const n = new Set(prev); n.add(matchId); return n })
 
     setSaving(matchId)
-    const tip = tips.get(matchId)
     const payload = { user_id: userId, match_id: matchId, home_score: parseInt(scores.home), away_score: parseInt(scores.away) }
-    if (tip) {
-      await supabase.from('tips').update(payload as any).eq('id', tip.id)
-    } else {
-      await supabase.from('tips').insert(payload as any)
-    }
+    await supabase.from('tips').upsert(payload as any, { onConflict: 'user_id,match_id' })
     await loadData()
     setSaving(null)
     setSaved(matchId)
@@ -109,13 +104,8 @@ export default function TippsPage() {
     const p = pending.get(matchId)
     if (!p || p.home === '' || p.away === '' || !userId) return
     setSaving(matchId)
-    const tip = tips.get(matchId)
     const payload = { user_id: userId, match_id: matchId, home_score: parseInt(p.home), away_score: parseInt(p.away) }
-    if (tip) {
-      await supabase.from('tips').update(payload as any).eq('id', tip.id)
-    } else {
-      await supabase.from('tips').insert(payload as any)
-    }
+    await supabase.from('tips').upsert(payload as any, { onConflict: 'user_id,match_id' })
     await loadData()
     setSaving(null)
     setSaved(matchId)

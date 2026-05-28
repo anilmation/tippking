@@ -58,6 +58,7 @@ export const COUNTRIES: Record<string, { name: string; flag: string }> = {
   SAU: { name: 'Saudi-Arabien', flag: 'sa' },
   QAT: { name: 'Katar', flag: 'qa' },
   IRQ: { name: 'Irak', flag: 'iq' },
+  ISR: { name: 'Israel', flag: 'il' },
   JOR: { name: 'Jordanien', flag: 'jo' },
   CHN: { name: 'China', flag: 'cn' },
   IND: { name: 'Indien', flag: 'in' },
