@@ -206,12 +206,21 @@ export default function TippsPage() {
               ) : (
                 <div style={{ paddingTop: 12, borderTop: '1px solid var(--pitch-border)' }}>
 
-                  {/* Tendency: Land-Buttons + Unentschieden */}
+                  {/* Tendency: Land-Buttons + Unentschieden (nur Gruppenphase) */}
+                  {(() => {
+                    const isKO = match.stage !== 'GROUP'
+                    const options = [
+                      { key: 'H' as Tendency, flag: homeFlag, label: homeName },
+                      ...(!isKO ? [{ key: 'D' as Tendency, flag: null, label: 'Unentschieden' }] : []),
+                      { key: 'A' as Tendency, flag: awayFlag, label: awayName },
+                    ]
+                    return null
+                  })()}
                   <div style={{ display: 'flex', gap: 8 }}>
                     {/* Home team button */}
                     {[
                       { key: 'H' as Tendency, flag: homeFlag, label: homeName },
-                      { key: 'D' as Tendency, flag: null, label: 'Unentschieden' },
+                      ...(match.stage === 'GROUP' ? [{ key: 'D' as Tendency, flag: null as null, label: 'Unentschieden' }] : []),
                       { key: 'A' as Tendency, flag: awayFlag, label: awayName },
                     ].map(({ key, flag, label }) => {
                       const isActive = currentTendency === key
