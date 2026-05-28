@@ -49,7 +49,7 @@
 
 @layer components {
   .btn-primary {
-    background: var(--pitch-green);
+    background: #15803d;
     color: #fff;
     font-weight: 500;
     padding: 8px 16px;
@@ -61,7 +61,7 @@
     align-items: center;
     gap: 6px;
   }
-  .btn-primary:hover { background: var(--pitch-green-mid); }
+  .btn-primary:hover { background: #166534; }
   .btn-primary:active { transform: scale(0.97); }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
