@@ -25,9 +25,9 @@
 }
 
 .dark {
-  --pitch-bg:        #060f09;
-  --pitch-surface:   #0d1f13;
-  --pitch-border:    #1a3525;
+  --pitch-bg:        #080808;
+  --pitch-surface:   #111111;
+  --pitch-border:    #222222;
   --pitch-green:     #4ade80;
   --pitch-green-mid: #22c55e;
   --pitch-green-dk:  #bbf7d0;
@@ -36,8 +36,8 @@
   --pitch-gold-lt:   #1c1500;
   --pitch-text:      #ecfdf5;
   --pitch-muted:     #6ee7b7;
-  --pitch-card:      #0f1f14;
-  --pitch-card-b:    #1a3525;
+  --pitch-card:      #141414;
+  --pitch-card-b:    #222222;
 }
 
 @layer base {
