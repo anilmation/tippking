@@ -3,6 +3,25 @@ import type { LeaderboardEntry } from '@/lib/types'
 
 export const revalidate = 60
 
+function AvatarCircle({ url, name }: { url: string | null; name: string }) {
+  const presets: Record<string, { emoji: string; bg: string }> = {
+    crown: { emoji: '👑', bg: '#15803d' }, ball: { emoji: '⚽', bg: '#1d4ed8' },
+    trophy: { emoji: '🏆', bg: '#b45309' }, lion: { emoji: '🦁', bg: '#7c3aed' },
+    fire: { emoji: '🔥', bg: '#dc2626' }, eagle: { emoji: '🦅', bg: '#0369a1' },
+    star: { emoji: '⭐', bg: '#ca8a04' }, rocket: { emoji: '🚀', bg: '#0f766e' },
+    wolf: { emoji: '🐺', bg: '#4b5563' }, thunder: { emoji: '⚡', bg: '#a16207' },
+    shield: { emoji: '🛡️', bg: '#1e3a5f' }, fist: { emoji: '✊', bg: '#991b1b' },
+  }
+  if (url?.startsWith('preset:')) {
+    const p = presets[url.replace('preset:', '')]
+    if (p) return <span style={{ width: 32, height: 32, borderRadius: '50%', background: p.bg, fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{p.emoji}</span>
+  }
+  if (url && !url.startsWith('preset:')) {
+    return <span style={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, display: 'flex' }}><img src={url} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></span>
+  }
+  return <span style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--pitch-green)', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{name[0]?.toUpperCase()}</span>
+}
+
 export default async function RanglistePage() {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -58,9 +77,7 @@ export default async function RanglistePage() {
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--pitch-green)', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {entry.username[0].toUpperCase()}
-                      </div>
+                      <AvatarCircle url={entry.avatar_url} name={entry.username} />
                       <span style={{ fontWeight: 500, fontSize: 14, color: isMe ? 'var(--pitch-green)' : 'var(--pitch-text)' }}>
                         {entry.username}{isMe && ' (Du)'}
                       </span>

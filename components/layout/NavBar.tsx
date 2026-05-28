@@ -18,12 +18,31 @@ export function NavBar() {
   const { theme, setTheme } = useTheme()
   const [user, setUser] = useState<User | null>(null)
   const [username, setUsername] = useState<string>('')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+
+  function getAvatarDisplay(url: string | null, name: string) {
+    if (!url) return { type: 'initial', value: name[0]?.toUpperCase() ?? '?', bg: '#15803d' }
+    if (url.startsWith('preset:')) {
+      const presets: Record<string, { emoji: string; bg: string }> = {
+        crown: { emoji: '👑', bg: '#15803d' }, ball: { emoji: '⚽', bg: '#1d4ed8' },
+        trophy: { emoji: '🏆', bg: '#b45309' }, lion: { emoji: '🦁', bg: '#7c3aed' },
+        fire: { emoji: '🔥', bg: '#dc2626' }, eagle: { emoji: '🦅', bg: '#0369a1' },
+        star: { emoji: '⭐', bg: '#ca8a04' }, rocket: { emoji: '🚀', bg: '#0f766e' },
+        wolf: { emoji: '🐺', bg: '#4b5563' }, thunder: { emoji: '⚡', bg: '#a16207' },
+        shield: { emoji: '🛡️', bg: '#1e3a5f' }, fist: { emoji: '✊', bg: '#991b1b' },
+      }
+      const p = presets[url.replace('preset:', '')]
+      if (p) return { type: 'emoji', value: p.emoji, bg: p.bg }
+    }
+    return { type: 'image', value: url, bg: '#15803d' }
+  }
   const [menuOpen, setMenuOpen] = useState(false)
   const supabase = createClient()
 
   async function loadProfile(uid: string) {
-    const { data } = await supabase.from('profiles').select('username').eq('id', uid).single()
+    const { data } = await supabase.from('profiles').select('username, avatar_url').eq('id', uid).single()
     if (data?.username) setUsername(data.username)
+    if (data?.avatar_url) setAvatarUrl(data.avatar_url)
   }
 
   useEffect(() => {
@@ -90,9 +109,14 @@ export function NavBar() {
                 onClick={() => setMenuOpen(!menuOpen)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--pitch-border)', background: 'var(--pitch-bg)', cursor: 'pointer', color: 'var(--pitch-text)', fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500 }}
               >
-                <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--pitch-green)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {displayName[0]?.toUpperCase()}
-                </span>
+                {(() => {
+                  const av = getAvatarDisplay(avatarUrl, displayName)
+                  return (
+                    <span style={{ width: 26, height: 26, borderRadius: '50%', background: av.bg, color: '#fff', fontSize: av.type === 'emoji' ? 14 : 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                      {av.type === 'image' ? <img src={av.value} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : av.value}
+                    </span>
+                  )
+                })()}
                 <span className="nav-username">{displayName}</span>
               </button>
               {menuOpen && (
