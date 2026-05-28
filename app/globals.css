@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: 'Oswald', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  html { font-family: var(--font-body); }
+
+  body {
+    @apply bg-slate-50 text-slate-900 transition-colors duration-200;
+  }
+
+  .dark body, body.dark {
+    @apply bg-slate-950 text-slate-100;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-pitch-600 hover:bg-pitch-700 text-white font-medium px-4 py-2 rounded-lg
+           transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600
+           text-slate-800 dark:text-slate-200 font-medium px-4 py-2 rounded-lg
+           transition-all duration-150 active:scale-95;
+  }
+
+  .card {
+    @apply bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700
+           shadow-sm p-4;
+  }
+
+  .input-field {
+    @apply bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600
+           rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100
+           focus:outline-none focus:ring-2 focus:ring-pitch-500 focus:border-transparent
+           transition-colors;
+  }
+
+  .score-input {
+    @apply w-12 h-12 text-center text-xl font-bold rounded-lg
+           bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600
+           focus:outline-none focus:border-pitch-500
+           transition-colors;
+  }
+
+  .badge-live {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+           bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400;
+  }
+
+  .badge-finished {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+           bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400;
+  }
+
+  .stage-tag {
+    @apply inline-block px-2 py-0.5 text-xs font-semibold uppercase tracking-wide rounded
+           bg-pitch-100 text-pitch-800 dark:bg-pitch-900/40 dark:text-pitch-300;
+  }
+}
+
+/* Live pulse dot */
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulse-red 1.5s ease-in-out infinite;
+}
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.75); }
+}
+
+/* Score input arrows hidden */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { @apply bg-transparent; }
+::-webkit-scrollbar-thumb { @apply bg-slate-300 dark:bg-slate-600 rounded-full; }
