@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<'login' | 'signup' | 'magic'>('login')
+  const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
@@ -19,11 +19,7 @@ export default function AuthPage() {
     setMessage('')
 
     try {
-      if (mode === 'magic') {
-        const { error } = await supabase.auth.signInWithOtp({ email })
-        if (error) throw error
-        setMessage('✅ Magic Link gesendet! Prüfe deine E-Mail.')
-      } else if (mode === 'signup') {
+      if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({
           email, password,
           options: { data: { username } }
@@ -62,7 +58,6 @@ export default function AuthPage() {
           {[
             { key: 'login', label: 'Anmelden' },
             { key: 'signup', label: 'Registrieren' },
-            { key: 'magic', label: 'Magic Link' },
           ].map(tab => (
             <button
               key={tab.key}
@@ -107,7 +102,7 @@ export default function AuthPage() {
             />
           </div>
 
-          {mode !== 'magic' && (
+          {true && (
             <div>
               <label className="block text-sm font-medium mb-1">Passwort</label>
               <input
@@ -129,7 +124,7 @@ export default function AuthPage() {
           )}
 
           <button type="submit" disabled={loading} className="btn-primary w-full py-3">
-            {loading ? 'Bitte warten...' : mode === 'login' ? 'Anmelden' : mode === 'signup' ? 'Account erstellen' : 'Magic Link senden'}
+            {loading ? 'Bitte warten...' : mode === 'login' ? 'Anmelden' : 'Account erstellen'}
           </button>
         </form>
       </div>
