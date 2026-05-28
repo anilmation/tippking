@@ -151,6 +151,9 @@ export default function TippsPage() {
           const awayName = getCountryName(match.away_team?.code) || match.away_team?.name || '?'
           const homeFlag = getFlagUrl(match.home_team?.code)
           const awayFlag = getFlagUrl(match.away_team?.code)
+          // Placeholder teams have codes starting with W_, RU_, T3_, L_
+          const isPlaceholder = (code: string) => /^(W_|RU_|T3_|L_)/.test(code ?? '')
+          const matchIsUnknown = isPlaceholder(match.home_team?.code) || isPlaceholder(match.away_team?.code)
 
           // Stage label without "Gruppe" prefix since we show group_name separately
           const stageDisplay = match.stage === 'GROUP'
@@ -160,13 +163,16 @@ export default function TippsPage() {
           return (
             <div key={match.id} className="card" style={{
               borderLeft: isLive ? '3px solid #ef4444' : tip ? '3px solid var(--pitch-green)' : '3px solid var(--pitch-border)',
-              opacity: isFinished ? 0.85 : 1,
+              opacity: isFinished ? 0.85 : matchIsUnknown ? 0.45 : 1,
+              filter: matchIsUnknown ? 'grayscale(0.4)' : 'none',
+              pointerEvents: matchIsUnknown ? 'none' : 'auto',
             }}>
               {/* Header — single clean line */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
                 <span className="stage-tag">{stageDisplay}</span>
                 {isLive && <span className="badge-live"><span className="live-dot" />LIVE</span>}
                 {isFinished && <span className="badge-finished">Beendet</span>}
+                {matchIsUnknown && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 999, background: 'var(--pitch-bg)', border: '1px solid var(--pitch-border)', color: 'var(--pitch-muted)' }}>⏳ Teams noch offen</span>}
                 <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--pitch-muted)' }}>
                   {format(kickoff, "EEE, dd. MMM · HH:mm 'Uhr'", { locale: de })}
                 </span>
