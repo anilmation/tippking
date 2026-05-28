@@ -5,6 +5,7 @@ import { format, isBefore } from 'date-fns'
 import { de } from 'date-fns/locale'
 import type { SpecialQuestion, SpecialTip } from '@/lib/types'
 import { COUNTRIES } from '@/lib/countries'
+import { PLAYERS_SORTED } from '@/lib/players'
 import { useRouter } from 'next/navigation'
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -119,6 +120,110 @@ function CountrySelect({
   )
 }
 
+function PlayerSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const selected = PLAYERS_SORTED.find(p => p.name === value)
+  const filtered = query.length >= 1
+    ? PLAYERS_SORTED.filter(p =>
+        p.name.toLowerCase().includes(query.toLowerCase()) ||
+        p.country.toLowerCase().includes(query.toLowerCase())
+      )
+    : PLAYERS_SORTED
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flex: 1 }}>
+      <div
+        onClick={() => { setOpen(!open); }}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '9px 12px', borderRadius: 8, cursor: 'pointer',
+          background: 'var(--pitch-bg)', border: '1px solid var(--pitch-border)',
+          minHeight: 42, transition: 'border-color 0.15s',
+          borderColor: open ? 'var(--pitch-green)' : 'var(--pitch-border)',
+        }}
+      >
+        {selected ? (
+          <>
+            <img src={`https://flagcdn.com/24x18/${selected.flag}.png`} alt="" width={18} height={13} style={{ borderRadius: 2, objectFit: 'cover', flexShrink: 0 }} />
+            <span style={{ fontSize: 14, color: 'var(--pitch-text)', fontWeight: 500 }}>{selected.name}</span>
+            <span style={{ fontSize: 11, color: 'var(--pitch-muted)', marginLeft: 2 }}>{selected.country}</span>
+          </>
+        ) : (
+          <span style={{ fontSize: 14, color: 'var(--pitch-muted)' }}>Spieler auswählen...</span>
+        )}
+        <span style={{ marginLeft: 'auto', color: 'var(--pitch-muted)', fontSize: 12 }}>{open ? '▲' : '▼'}</span>
+      </div>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 100,
+          background: 'var(--pitch-surface)', border: '1px solid var(--pitch-border)',
+          borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+        }}>
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--pitch-border)' }}>
+            <input
+              autoFocus
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Spieler oder Land suchen..."
+              style={{
+                width: '100%', padding: '7px 10px', borderRadius: 6, fontSize: 13,
+                background: 'var(--pitch-bg)', border: '1px solid var(--pitch-border)',
+                color: 'var(--pitch-text)', fontFamily: 'var(--font-body)', outline: 'none',
+              }}
+            />
+          </div>
+          <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+            {filtered.length === 0 ? (
+              <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--pitch-muted)' }}>Kein Spieler gefunden</div>
+            ) : filtered.map((p, i) => {
+              const isSelected = value === p.name
+              const prevCountry = i > 0 ? filtered[i-1].country : null
+              const showDivider = prevCountry && prevCountry !== p.country
+              return (
+                <div key={`${p.name}-${p.countryCode}`}>
+                  {showDivider && <div style={{ height: 1, background: 'var(--pitch-border)', margin: '2px 0' }} />}
+                  <div
+                    onClick={() => { onChange(p.name); setOpen(false); setQuery('') }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '9px 14px', cursor: 'pointer',
+                      background: isSelected ? 'rgba(22,163,74,0.1)' : 'transparent',
+                      borderLeft: isSelected ? '3px solid var(--pitch-green)' : '3px solid transparent',
+                      transition: 'background 0.1s',
+                    }}
+                    onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--pitch-bg)' }}
+                    onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                  >
+                    <img src={`https://flagcdn.com/24x18/${p.flag}.png`} alt="" width={18} height={13} style={{ borderRadius: 2, objectFit: 'cover', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, color: isSelected ? 'var(--pitch-green)' : 'var(--pitch-text)', fontWeight: isSelected ? 600 : 400 }}>{p.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--pitch-muted)' }}>{p.country}</div>
+                    </div>
+                    {isSelected && <span style={{ color: 'var(--pitch-green)', fontSize: 14 }}>✓</span>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function SondertippsPage() {
   const [questions, setQuestions] = useState<SpecialQuestion[]>([])
   const [myTips, setMyTips] = useState<Map<number, SpecialTip>>(new Map())
@@ -171,7 +276,11 @@ export default function SondertippsPage() {
   const totalPossible = questions.reduce((sum, q) => sum + q.points_value, 0)
 
   const isCountryQuestion = (q: SpecialQuestion) =>
-    ['WINNER', 'RUNNER_UP', 'THIRD', 'CUSTOM'].includes(q.category)
+    ['WINNER', 'RUNNER_UP', 'THIRD'].includes(q.category)
+  const isPlayerQuestion = (q: SpecialQuestion) =>
+    q.category === 'TOP_SCORER'
+  const isCustomQuestion = (q: SpecialQuestion) =>
+    q.category === 'CUSTOM'
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: 720, margin: '0 auto' }}>
@@ -238,7 +347,18 @@ export default function SondertippsPage() {
                   ) : (
                     /* Input */
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      {isCountry ? (
+                      {isCountryQuestion(q) ? (
+                        <CountrySelect
+                          value={currentAnswer}
+                          onChange={val => setPending(prev => { const n = new Map(prev); n.set(q.id, val); return n })}
+                          placeholder="Land auswählen..."
+                        />
+                      ) : isPlayerQuestion(q) ? (
+                        <PlayerSelect
+                          value={currentAnswer}
+                          onChange={val => setPending(prev => { const n = new Map(prev); n.set(q.id, val); return n })}
+                        />
+                      ) : isCustomQuestion(q) ? (
                         <CountrySelect
                           value={currentAnswer}
                           onChange={val => setPending(prev => { const n = new Map(prev); n.set(q.id, val); return n })}
