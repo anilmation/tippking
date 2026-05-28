@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import type { LeaderboardEntry } from '@/lib/types'
 
 export const revalidate = 60
