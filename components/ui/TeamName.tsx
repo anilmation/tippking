@@ -21,13 +21,13 @@ export function TeamName({ code, name, size = 'md', align = 'left' }: Props) {
       gap: 6,
       flexDirection: align === 'right' ? 'row-reverse' : 'row',
     }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={flagUrl}
         alt={displayName}
         width={flagW}
         height={flagH}
         style={{ borderRadius: 2, objectFit: 'cover', flexShrink: 0 }}
-        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
       />
       <span style={{ fontWeight: 500, fontSize, color: 'var(--pitch-text)' }}>{displayName}</span>
     </span>
