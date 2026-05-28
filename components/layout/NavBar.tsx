@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { href: '/tipps', label: 'Tipps' },
   { href: '/sondertipps', label: 'Sondertipps' },
   { href: '/rangliste', label: 'Rangliste' },
+  { href: '/regeln', label: 'Regeln' },
 ]
 
 export function NavBar() {
