@@ -73,18 +73,11 @@ export default function TippsPage() {
 
   async function pickTendency(matchId: number, t: Tendency) {
     if (!t || !userId) return
-    const existing = pending.get(matchId)
+    // Always use fixed defaults — no accumulation
     const defaults: Record<string, { home: string; away: string }> = {
       H: { home: '1', away: '0' }, D: { home: '1', away: '1' }, A: { home: '0', away: '1' }
     }
-    let scores = existing?.home && existing?.away ? { home: existing.home, away: existing.away } : defaults[t]
-
-    // Adjust if tendency doesn't match current scores
-    const h = parseInt(scores.home), a = parseInt(scores.away)
-    if (t === 'H' && h <= a) scores = { home: String(a + 1), away: String(a) }
-    if (t === 'D' && h !== a) { const v = Math.max(h, a); scores = { home: String(v), away: String(v) } }
-    if (t === 'A' && a <= h) scores = { home: String(h), away: String(h + 1) }
-
+    const scores = defaults[t]
     setPending(prev => { const n = new Map(prev); n.set(matchId, scores); return n })
     setShowScore(prev => { const n = new Set(prev); n.add(matchId); return n })
 
@@ -259,31 +252,24 @@ export default function TippsPage() {
                     })}
                   </div>
 
-                  {/* Bonus hint */}
-                  {currentTendency && !isScoreVisible && (
-                    <button
-                      onClick={() => setShowScore(prev => { const n = new Set(prev); n.add(match.id); return n })}
-                      style={{ width: '100%', marginTop: 8, padding: '7px', borderRadius: 8, fontSize: 12, color: 'var(--pitch-muted)', background: 'transparent', border: '1px dashed var(--pitch-border)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}
-                    >
-                      🎯 Genaues Ergebnis tippen → bis zu 3 Bonuspunkte
-                    </button>
-                  )}
-
-                  {/* Score inputs */}
+                  {/* Score inputs — always shown after tendency picked */}
                   {isScoreVisible && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                      <span style={{ fontSize: 12, color: 'var(--pitch-muted)', flexShrink: 0 }}>🎯 Ergebnis:</span>
-                      <input type="number" min={0} max={20} value={p?.home ?? ''} onChange={e => setPendingValue(match.id, 'home', e.target.value)} className="score-input" style={{ width: 44, height: 40, fontSize: 18 }} placeholder="–" />
-                      <span style={{ color: 'var(--pitch-muted)', fontWeight: 700 }}>:</span>
-                      <input type="number" min={0} max={20} value={p?.away ?? ''} onChange={e => setPendingValue(match.id, 'away', e.target.value)} className="score-input" style={{ width: 44, height: 40, fontSize: 18 }} placeholder="–" />
-                      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}>
-                        {saved === match.id
-                          ? <span style={{ fontSize: 12, color: 'var(--pitch-green)', fontWeight: 600 }}>✓ Gespeichert</span>
-                          : <button onClick={() => saveTip(match.id)} disabled={saving === match.id} className="btn-primary" style={{ fontSize: 12, padding: '7px 14px' }}>
-                              {saving === match.id ? '...' : 'Speichern'}
-                            </button>
-                        }
-                        <button onClick={() => setShowScore(prev => { const n = new Set(prev); n.delete(match.id); return n })} style={{ fontSize: 18, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pitch-muted)', padding: '0 2px' }}>×</button>
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="number" min={0} max={20} value={p?.home ?? ''} onChange={e => setPendingValue(match.id, 'home', e.target.value)} className="score-input" style={{ width: 44, height: 40, fontSize: 18 }} placeholder="–" />
+                        <span style={{ color: 'var(--pitch-muted)', fontWeight: 700 }}>:</span>
+                        <input type="number" min={0} max={20} value={p?.away ?? ''} onChange={e => setPendingValue(match.id, 'away', e.target.value)} className="score-input" style={{ width: 44, height: 40, fontSize: 18 }} placeholder="–" />
+                        <span style={{ fontSize: 11, color: 'var(--pitch-muted)', flex: 1, lineHeight: 1.4 }}>
+                          🎯 Richtiges Ergebnis = bis zu <strong style={{ color: 'var(--pitch-green)' }}>+3 Bonuspunkte</strong>
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                          {saved === match.id
+                            ? <span style={{ fontSize: 12, color: 'var(--pitch-green)', fontWeight: 600 }}>✓</span>
+                            : <button onClick={() => saveTip(match.id)} disabled={saving === match.id} className="btn-primary" style={{ fontSize: 12, padding: '7px 14px' }}>
+                                {saving === match.id ? '...' : 'Speichern'}
+                              </button>
+                          }
+                        </div>
                       </div>
                     </div>
                   )}
