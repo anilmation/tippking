@@ -8,6 +8,7 @@ export default function ProfilPage() {
   const [email, setEmail] = useState('')
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
+  const [userId, setUserId] = useState<string | null>(null)
   const supabase = createClient()
   const router = useRouter()
 
@@ -15,19 +16,32 @@ export default function ProfilPage() {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { router.push('/auth'); return }
       setEmail(data.user.email ?? '')
-      const { data: profile } = await supabase.from('profiles').select('username').eq('id', data.user.id).single()
-      setUsername(profile?.username ?? '')
+      setUserId(data.user.id)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', data.user.id)
+        .single()
+      if (profile?.username) setUsername(profile.username)
     })
   }, [])
 
   async function save() {
+    if (!userId || !username.trim()) return
     setSaving(true)
     setMsg('')
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { error } = await supabase.from('profiles').update({ username } as any).eq('id', user.id)
+    const { error } = await supabase
+      .from('profiles')
+      .update({ username: username.trim() } as any)
+      .eq('id', userId)
     setSaving(false)
-    setMsg(error ? '❌ ' + error.message : '✅ Gespeichert')
+    if (error) {
+      setMsg('❌ ' + error.message)
+    } else {
+      setMsg('✅ Gespeichert')
+      // Reload to reflect changes in navbar
+      window.location.reload()
+    }
   }
 
   return (
@@ -36,14 +50,25 @@ export default function ProfilPage() {
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
           <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--pitch-muted)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>E-Mail</label>
-          <input value={email} disabled className="input-field" style={{ opacity: 0.6 }} />
+          <input value={email} disabled className="input-field" style={{ opacity: 0.5, cursor: 'not-allowed' }} />
         </div>
         <div>
           <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--pitch-muted)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Benutzername</label>
-          <input value={username} onChange={e => setUsername(e.target.value)} className="input-field" placeholder="deinname" />
+          <input
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            className="input-field"
+            placeholder="deinname"
+            minLength={3}
+            maxLength={20}
+            onKeyDown={e => e.key === 'Enter' && save()}
+          />
+          <p style={{ fontSize: 11, color: 'var(--pitch-muted)', marginTop: 4 }}>3–20 Zeichen, wird in der Rangliste angezeigt</p>
         </div>
-        {msg && <p style={{ fontSize: 13, color: msg.startsWith('✅') ? 'var(--pitch-green)' : '#ef4444', margin: 0 }}>{msg}</p>}
-        <button onClick={save} disabled={saving} className="btn-primary" style={{ alignSelf: 'flex-start' }}>
+        {msg && (
+          <p style={{ fontSize: 13, color: msg.startsWith('✅') ? 'var(--pitch-green)' : '#ef4444', margin: 0 }}>{msg}</p>
+        )}
+        <button onClick={save} disabled={saving || !username.trim()} className="btn-primary" style={{ alignSelf: 'flex-start' }}>
           {saving ? 'Speichere...' : 'Speichern'}
         </button>
       </div>

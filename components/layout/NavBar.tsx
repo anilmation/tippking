@@ -5,7 +5,6 @@ import { useTheme } from './ThemeProvider'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
-import clsx from 'clsx'
 
 const NAV_LINKS = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -18,21 +17,35 @@ export function NavBar() {
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const [user, setUser] = useState<User | null>(null)
+  const [username, setUsername] = useState<string>('')
   const [menuOpen, setMenuOpen] = useState(false)
   const supabase = createClient()
 
+  async function loadProfile(uid: string) {
+    const { data } = await supabase.from('profiles').select('username').eq('id', uid).single()
+    if (data?.username) setUsername(data.username)
+  }
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user))
-    const { data: sub } = supabase.auth.onAuthStateChange((_, session) => setUser(session?.user ?? null))
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user)
+      if (data.user) loadProfile(data.user.id)
+    })
+    const { data: sub } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null)
+      if (session?.user) loadProfile(session.user.id)
+      else setUsername('')
+    })
     return () => sub.subscription.unsubscribe()
   }, [])
+
+  const displayName = username || user?.email?.split('@')[0] || ''
 
   return (
     <header style={{
       position: 'sticky', top: 0, zIndex: 50,
       background: 'var(--pitch-surface)',
       borderBottom: '1px solid var(--pitch-border)',
-      backdropFilter: 'blur(8px)',
     }}>
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 16px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
 
@@ -42,19 +55,18 @@ export function NavBar() {
             TIPP<span style={{ color: 'var(--pitch-green)' }}>KING</span>
             <span style={{ color: 'var(--pitch-muted)', fontSize: 13, marginLeft: 6, fontWeight: 400 }}>WM 2026</span>
           </span>
-          <span style={{ fontSize: 9, color: 'var(--pitch-muted)', letterSpacing: '0.06em', marginTop: 1 }}>vibecoded by Anil</span>
+          <span style={{ fontSize: 9, color: 'var(--pitch-muted)', letterSpacing: '0.06em', marginTop: 1, opacity: 0.7 }}>vibecoded by Anil</span>
         </Link>
 
         {/* Desktop Nav */}
-        <nav style={{ display: 'flex', gap: 4, alignItems: 'center' }} className="hidden-mobile">
+        <nav style={{ display: 'flex', gap: 4, alignItems: 'center' }} className="nav-desktop">
           {NAV_LINKS.map(link => (
             <Link key={link.href} href={link.href} style={{ textDecoration: 'none' }}>
               <span style={{
                 padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-                transition: 'all 0.15s',
+                transition: 'all 0.15s', display: 'block',
                 background: pathname.startsWith(link.href) ? 'rgba(22,163,74,0.12)' : 'transparent',
                 color: pathname.startsWith(link.href) ? 'var(--pitch-green)' : 'var(--pitch-muted)',
-                display: 'block',
               }}>
                 {link.label}
               </span>
@@ -78,10 +90,10 @@ export function NavBar() {
                 onClick={() => setMenuOpen(!menuOpen)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--pitch-border)', background: 'var(--pitch-bg)', cursor: 'pointer', color: 'var(--pitch-text)', fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500 }}
               >
-                <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--pitch-green)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {user.email?.[0].toUpperCase()}
+                <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--pitch-green)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {displayName[0]?.toUpperCase()}
                 </span>
-                <span className="hidden-mobile">{user.email?.split('@')[0]}</span>
+                <span className="nav-username">{displayName}</span>
               </button>
               {menuOpen && (
                 <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 160, background: 'var(--pitch-surface)', border: '1px solid var(--pitch-border)', borderRadius: 10, padding: 6, zIndex: 100 }}>
@@ -95,13 +107,13 @@ export function NavBar() {
               )}
             </div>
           ) : (
-            <Link href="/auth">
+            <Link href="/auth" style={{ textDecoration: 'none' }}>
               <span className="btn-primary" style={{ fontSize: 13, padding: '7px 14px' }}>Anmelden</span>
             </Link>
           )}
 
-          <button className="show-mobile" onClick={() => setMenuOpen(!menuOpen)}
-            style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--pitch-border)', background: 'var(--pitch-bg)', cursor: 'pointer', fontSize: 18 }}>
+          <button className="nav-hamburger" onClick={() => setMenuOpen(!menuOpen)}
+            style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--pitch-border)', background: 'var(--pitch-bg)', cursor: 'pointer', fontSize: 18, display: 'none' }}>
             ☰
           </button>
         </div>
@@ -109,7 +121,7 @@ export function NavBar() {
 
       {/* Mobile Nav */}
       {menuOpen && (
-        <nav className="show-mobile" style={{ borderTop: '1px solid var(--pitch-border)', padding: '8px 16px 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <nav className="nav-mobile" style={{ borderTop: '1px solid var(--pitch-border)', padding: '8px 16px 12px', flexDirection: 'column', gap: 2, display: 'none' }}>
           {NAV_LINKS.map(link => (
             <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none' }}>
               <span style={{
@@ -123,8 +135,17 @@ export function NavBar() {
       )}
 
       <style>{`
-        @media (min-width: 640px) { .hidden-mobile { display: flex !important; } .show-mobile { display: none !important; } }
-        @media (max-width: 639px) { .hidden-mobile { display: none !important; } .show-mobile { display: flex !important; } }
+        @media (min-width: 640px) {
+          .nav-desktop { display: flex !important; }
+          .nav-hamburger { display: none !important; }
+          .nav-username { display: inline !important; }
+        }
+        @media (max-width: 639px) {
+          .nav-desktop { display: none !important; }
+          .nav-hamburger { display: flex !important; }
+          .nav-username { display: none !important; }
+          .nav-mobile { display: flex !important; }
+        }
       `}</style>
     </header>
   )

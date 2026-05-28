@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase'
 import { format, isBefore } from 'date-fns'
 import { de } from 'date-fns/locale'
 import type { Match, Tip, Team } from '@/lib/types'
-import { TeamName } from '@/components/ui/TeamName'
+import { getCountryName, getFlagUrl } from '@/lib/countries'
 import { useRouter } from 'next/navigation'
 
 type MatchWithTeams = Match & { home_team: Team; away_team: Team }
@@ -12,7 +12,7 @@ type Tendency = 'H' | 'D' | 'A' | null
 
 const STAGES = ['Alle', 'GROUP', 'R32', 'R16', 'QF', 'SF', '3RD', 'FINAL']
 const STAGE_LABELS: Record<string, string> = {
-  'Alle': 'Alle', 'GROUP': 'Gruppe', 'R32': 'Runde 32', 'R16': 'Achtelfinale',
+  'Alle': 'Alle', 'GROUP': 'Gruppenphase', 'R32': 'Runde 32', 'R16': 'Achtelfinale',
   'QF': 'Viertelfinale', 'SF': 'Halbfinale', '3RD': 'Platz 3', 'FINAL': 'Finale'
 }
 
@@ -59,7 +59,6 @@ export default function TippsPage() {
     const p = new Map<number, { home: string; away: string }>()
     tipData?.forEach((t: any) => p.set(t.match_id, { home: String(t.home_score), away: String(t.away_score) }))
     setPending(p)
-    // Show score inputs for matches that already have a score tipped
     const withScore = new Set<number>()
     tipData?.forEach((t: any) => withScore.add(t.match_id))
     setShowScore(withScore)
@@ -75,44 +74,28 @@ export default function TippsPage() {
     })
   }
 
-  function setTendencyQuick(matchId: number, t: Tendency) {
-    if (!t) return
+  async function pickTendency(matchId: number, t: Tendency) {
+    if (!t || !userId) return
     const existing = pending.get(matchId)
-    // Set a default score for the tendency if no score yet
-    if (!existing?.home && !existing?.away) {
-      const defaults: Record<string, { home: string; away: string }> = {
-        H: { home: '1', away: '0' },
-        D: { home: '1', away: '1' },
-        A: { home: '0', away: '1' },
-      }
-      setPending(prev => { const n = new Map(prev); n.set(matchId, defaults[t]); return n })
-    } else {
-      // Adjust existing scores to match tendency
-      const h = parseInt(existing.home || '0')
-      const a = parseInt(existing.away || '0')
-      if (t === 'H' && h <= a) setPending(prev => { const n = new Map(prev); n.set(matchId, { home: String(a + 1), away: String(a) }); return n })
-      if (t === 'D' && h !== a) { const avg = Math.max(h, a); setPending(prev => { const n = new Map(prev); n.set(matchId, { home: String(avg), away: String(avg) }); return n }) }
-      if (t === 'A' && a <= h) setPending(prev => { const n = new Map(prev); n.set(matchId, { home: String(h), away: String(h + 1) }); return n })
+    const defaults: Record<string, { home: string; away: string }> = {
+      H: { home: '1', away: '0' }, D: { home: '1', away: '1' }, A: { home: '0', away: '1' }
     }
-    // Auto-save tendency
-    autoSave(matchId, t)
-  }
+    let scores = existing?.home && existing?.away ? { home: existing.home, away: existing.away } : defaults[t]
 
-  async function autoSave(matchId: number, tendency: Tendency) {
-    if (!userId || !tendency) return
-    const p = pending.get(matchId)
-    const defaults: Record<string, { home: number; away: number }> = {
-      H: { home: 1, away: 0 }, D: { home: 1, away: 1 }, A: { home: 0, away: 1 }
-    }
-    const scores = p?.home && p?.away
-      ? { home: parseInt(p.home), away: parseInt(p.away) }
-      : defaults[tendency]
+    // Adjust if tendency doesn't match current scores
+    const h = parseInt(scores.home), a = parseInt(scores.away)
+    if (t === 'H' && h <= a) scores = { home: String(a + 1), away: String(a) }
+    if (t === 'D' && h !== a) { const v = Math.max(h, a); scores = { home: String(v), away: String(v) } }
+    if (t === 'A' && a <= h) scores = { home: String(h), away: String(h + 1) }
+
+    setPending(prev => { const n = new Map(prev); n.set(matchId, scores); return n })
+    setShowScore(prev => { const n = new Set(prev); n.add(matchId); return n })
 
     setSaving(matchId)
-    const existing = tips.get(matchId)
-    const payload = { user_id: userId, match_id: matchId, home_score: scores.home, away_score: scores.away }
-    if (existing) {
-      await supabase.from('tips').update(payload as any).eq('id', existing.id)
+    const tip = tips.get(matchId)
+    const payload = { user_id: userId, match_id: matchId, home_score: parseInt(scores.home), away_score: parseInt(scores.away) }
+    if (tip) {
+      await supabase.from('tips').update(payload as any).eq('id', tip.id)
     } else {
       await supabase.from('tips').insert(payload as any)
     }
@@ -125,14 +108,11 @@ export default function TippsPage() {
   async function saveTip(matchId: number) {
     const p = pending.get(matchId)
     if (!p || p.home === '' || p.away === '' || !userId) return
-    const homeScore = parseInt(p.home)
-    const awayScore = parseInt(p.away)
-    if (isNaN(homeScore) || isNaN(awayScore)) return
     setSaving(matchId)
-    const existing = tips.get(matchId)
-    const payload = { user_id: userId, match_id: matchId, home_score: homeScore, away_score: awayScore }
-    if (existing) {
-      await supabase.from('tips').update(payload as any).eq('id', existing.id)
+    const tip = tips.get(matchId)
+    const payload = { user_id: userId, match_id: matchId, home_score: parseInt(p.home), away_score: parseInt(p.away) }
+    if (tip) {
+      await supabase.from('tips').update(payload as any).eq('id', tip.id)
     } else {
       await supabase.from('tips').insert(payload as any)
     }
@@ -140,14 +120,6 @@ export default function TippsPage() {
     setSaving(null)
     setSaved(matchId)
     setTimeout(() => setSaved(null), 2000)
-  }
-
-  function toggleShowScore(matchId: number) {
-    setShowScore(prev => {
-      const next = new Set(prev)
-      next.has(matchId) ? next.delete(matchId) : next.add(matchId)
-      return next
-    })
   }
 
   const filtered = stage === 'Alle' ? matches : matches.filter(m => m.stage === stage)
@@ -192,18 +164,24 @@ export default function TippsPage() {
           const p = pending.get(match.id)
           const currentTendency = getTendency(p?.home ?? '', p?.away ?? '')
           const isScoreVisible = showScore.has(match.id)
-          const hasTip = !!tip
+          const homeName = getCountryName(match.home_team?.code) || match.home_team?.name || '?'
+          const awayName = getCountryName(match.away_team?.code) || match.away_team?.name || '?'
+          const homeFlag = getFlagUrl(match.home_team?.code)
+          const awayFlag = getFlagUrl(match.away_team?.code)
+
+          // Stage label without "Gruppe" prefix since we show group_name separately
+          const stageDisplay = match.stage === 'GROUP'
+            ? `Gruppe ${match.group_name}`
+            : STAGE_LABELS[match.stage]
 
           return (
             <div key={match.id} className="card" style={{
-              borderLeft: isLive ? '3px solid #ef4444' : hasTip ? '3px solid var(--pitch-green)' : '3px solid var(--pitch-border)',
+              borderLeft: isLive ? '3px solid #ef4444' : tip ? '3px solid var(--pitch-green)' : '3px solid var(--pitch-border)',
               opacity: isFinished ? 0.85 : 1,
-              transition: 'border-color 0.2s',
             }}>
-              {/* Header */}
+              {/* Header — single clean line */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-                <span className="stage-tag">{STAGE_LABELS[match.stage]}</span>
-                {match.group_name && <span style={{ fontSize: 11, color: 'var(--pitch-muted)' }}>Gruppe {match.group_name}</span>}
+                <span className="stage-tag">{stageDisplay}</span>
                 {isLive && <span className="badge-live"><span className="live-dot" />LIVE</span>}
                 {isFinished && <span className="badge-finished">Beendet</span>}
                 <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--pitch-muted)' }}>
@@ -211,20 +189,26 @@ export default function TippsPage() {
                 </span>
               </div>
 
-              {/* Teams */}
+              {/* Teams row */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 8 }}>
-                <TeamName code={match.home_team?.code} name={match.home_team?.name} size="md" align="left" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <img src={homeFlag} alt={homeName} width={20} height={15} style={{ borderRadius: 2, objectFit: 'cover' }} />
+                  <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--pitch-text)' }}>{homeName}</span>
+                </div>
                 {isFinished || isLive ? (
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: 'var(--pitch-green)', letterSpacing: '0.04em' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: 'var(--pitch-green)', letterSpacing: '0.04em', flexShrink: 0 }}>
                     {match.home_score} : {match.away_score}
                   </span>
                 ) : (
-                  <span style={{ fontSize: 12, color: 'var(--pitch-muted)', fontWeight: 500 }}>vs</span>
+                  <span style={{ fontSize: 11, color: 'var(--pitch-muted)', fontWeight: 500, flexShrink: 0 }}>vs</span>
                 )}
-                <TeamName code={match.away_team?.code} name={match.away_team?.name} size="md" align="right" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--pitch-text)' }}>{awayName}</span>
+                  <img src={awayFlag} alt={awayName} width={20} height={15} style={{ borderRadius: 2, objectFit: 'cover' }} />
+                </div>
               </div>
 
-              {/* Tendency buttons or locked state */}
+              {/* Bottom section */}
               {isFinished ? (
                 tip && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid var(--pitch-border)', fontSize: 13 }}>
@@ -239,18 +223,19 @@ export default function TippsPage() {
               ) : (
                 <div style={{ paddingTop: 12, borderTop: '1px solid var(--pitch-border)' }}>
 
-                  {/* Primary: Tendency buttons */}
-                  <div style={{ display: 'flex', gap: 8, marginBottom: isScoreVisible ? 12 : 0 }}>
+                  {/* Tendency: Land-Buttons + Unentschieden */}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {/* Home team button */}
                     {[
-                      { key: 'H' as Tendency, label: 'Heimsieg' },
-                      { key: 'D' as Tendency, label: 'Unentschieden' },
-                      { key: 'A' as Tendency, label: 'Auswärtssieg' },
-                    ].map(({ key, label }) => {
+                      { key: 'H' as Tendency, flag: homeFlag, label: homeName },
+                      { key: 'D' as Tendency, flag: null, label: 'Unentschieden' },
+                      { key: 'A' as Tendency, flag: awayFlag, label: awayName },
+                    ].map(({ key, flag, label }) => {
                       const isActive = currentTendency === key
                       return (
                         <button
                           key={key}
-                          onClick={() => { setTendencyQuick(match.id, key); if (!isScoreVisible) setShowScore(prev => { const n = new Set(prev); n.add(match.id); return n }) }}
+                          onClick={() => pickTendency(match.id, key)}
                           style={{
                             flex: 1,
                             padding: '9px 6px',
@@ -263,53 +248,52 @@ export default function TippsPage() {
                             border: isActive ? 'none' : '1px solid var(--pitch-border)',
                             background: isActive ? '#15803d' : 'var(--pitch-bg)',
                             color: isActive ? '#fff' : 'var(--pitch-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 5,
                           }}
                         >
-                          {saving === match.id && isActive ? '...' : saved === match.id && isActive ? '✓' : label}
+                          {saving === match.id && isActive ? (
+                            '...'
+                          ) : saved === match.id && isActive ? (
+                            '✓'
+                          ) : (
+                            <>
+                              {flag && <img src={flag} alt="" width={14} height={10} style={{ borderRadius: 1, objectFit: 'cover' }} />}
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: key === 'D' ? 90 : 80 }}>{label}</span>
+                            </>
+                          )}
                         </button>
                       )
                     })}
                   </div>
 
-                  {/* Bonus hint — shown after tendency is selected */}
+                  {/* Bonus hint */}
                   {currentTendency && !isScoreVisible && (
                     <button
-                      onClick={() => toggleShowScore(match.id)}
-                      style={{ width: '100%', marginTop: 8, padding: '7px', borderRadius: 8, fontSize: 12, color: 'var(--pitch-muted)', background: 'transparent', border: '1px dashed var(--pitch-border)', cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}
+                      onClick={() => setShowScore(prev => { const n = new Set(prev); n.add(match.id); return n })}
+                      style={{ width: '100%', marginTop: 8, padding: '7px', borderRadius: 8, fontSize: 12, color: 'var(--pitch-muted)', background: 'transparent', border: '1px dashed var(--pitch-border)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}
                     >
-                      🎯 Richtiges Ergebnis tippen für bis zu 3 Bonuspunkte
+                      🎯 Genaues Ergebnis tippen → bis zu 3 Bonuspunkte
                     </button>
                   )}
 
-                  {/* Secondary: Score inputs */}
+                  {/* Score inputs */}
                   {isScoreVisible && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
                       <span style={{ fontSize: 12, color: 'var(--pitch-muted)', flexShrink: 0 }}>🎯 Ergebnis:</span>
-                      <input
-                        type="number" min={0} max={20}
-                        value={p?.home ?? ''}
-                        onChange={e => setPendingValue(match.id, 'home', e.target.value)}
-                        className="score-input"
-                        style={{ width: 44, height: 40, fontSize: 18 }}
-                        placeholder="–"
-                      />
+                      <input type="number" min={0} max={20} value={p?.home ?? ''} onChange={e => setPendingValue(match.id, 'home', e.target.value)} className="score-input" style={{ width: 44, height: 40, fontSize: 18 }} placeholder="–" />
                       <span style={{ color: 'var(--pitch-muted)', fontWeight: 700 }}>:</span>
-                      <input
-                        type="number" min={0} max={20}
-                        value={p?.away ?? ''}
-                        onChange={e => setPendingValue(match.id, 'away', e.target.value)}
-                        className="score-input"
-                        style={{ width: 44, height: 40, fontSize: 18 }}
-                        placeholder="–"
-                      />
-                      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: 8, alignItems: 'center' }}>
+                      <input type="number" min={0} max={20} value={p?.away ?? ''} onChange={e => setPendingValue(match.id, 'away', e.target.value)} className="score-input" style={{ width: 44, height: 40, fontSize: 18 }} placeholder="–" />
+                      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}>
                         {saved === match.id
                           ? <span style={{ fontSize: 12, color: 'var(--pitch-green)', fontWeight: 600 }}>✓ Gespeichert</span>
                           : <button onClick={() => saveTip(match.id)} disabled={saving === match.id} className="btn-primary" style={{ fontSize: 12, padding: '7px 14px' }}>
                               {saving === match.id ? '...' : 'Speichern'}
                             </button>
                         }
-                        <button onClick={() => toggleShowScore(match.id)} style={{ fontSize: 18, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pitch-muted)', padding: '0 4px' }}>×</button>
+                        <button onClick={() => setShowScore(prev => { const n = new Set(prev); n.delete(match.id); return n })} style={{ fontSize: 18, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pitch-muted)', padding: '0 2px' }}>×</button>
                       </div>
                     </div>
                   )}
