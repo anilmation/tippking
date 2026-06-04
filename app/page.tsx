@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { POINT_SYSTEM } from '@/lib/points'
+
 
 export default function HomePage() {
   return (
@@ -81,26 +81,41 @@ export default function HomePage() {
 
       {/* Punktesystem */}
       <section className="card" style={{ marginBottom: 40, padding: '20px 24px' }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, marginBottom: 16, letterSpacing: '0.03em' }}>PUNKTESYSTEM</h2>
-        {POINT_SYSTEM.map((p, i) => (
-          <div key={p.points} style={{
-            display: 'flex', alignItems: 'center', gap: 16,
-            padding: '11px 0',
-            borderBottom: i < POINT_SYSTEM.length - 1 ? '1px solid var(--pitch-border)' : 'none'
-          }}>
-            <span style={{
-              fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700,
-              color: p.points === 4 ? '#ca8a04' : p.points >= 2 ? 'var(--pitch-green)' : p.points === 1 ? '#f59e0b' : '#ef4444',
-              width: 32, textAlign: 'center', flexShrink: 0
-            }}>{p.points}</span>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 13 }}>{p.label}</div>
-              <div style={{ fontSize: 12, color: 'var(--pitch-muted)', marginTop: 1 }}>{p.description}</div>
-            </div>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, marginBottom: 4, letterSpacing: '0.03em' }}>PUNKTESYSTEM</h2>
+        <p style={{ fontSize: 12, color: 'var(--pitch-muted)', marginBottom: 16 }}>Gruppenphase max. 10 Pkt · K.O.-Phase max. 20 Pkt pro Spiel</p>
+
+        <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 200, background: 'var(--pitch-bg)', borderRadius: 10, padding: '12px 14px', border: '1px solid var(--pitch-border)' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--pitch-muted)', marginBottom: 10, letterSpacing: '0.06em' }}>GRUPPENPHASE</div>
+            {[
+              { pts: 5, label: 'Richtiger Sieger / Unentschieden' },
+              { pts: 3, label: 'Richtige Tordifferenz' },
+              { pts: 1, label: 'Richtiger Heimscore' },
+              { pts: 1, label: 'Richtiger Gastscore' },
+            ].map(p => (
+              <div key={p.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid var(--pitch-border)' }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: p.pts === 5 ? '#ca8a04' : p.pts === 3 ? 'var(--pitch-green)' : '#60a5fa', width: 24, textAlign: 'center', flexShrink: 0 }}>{p.pts}</span>
+                <span style={{ fontSize: 12, color: 'var(--pitch-muted)' }}>{p.label}</span>
+              </div>
+            ))}
           </div>
-        ))}
-        <p style={{ marginTop: 14, fontSize: 12, color: 'var(--pitch-muted)' }}>
-          Plus bis zu <strong style={{ color: '#ca8a04' }}>15 Bonuspunkte</strong> für Sondertipps (Weltmeister, Torschützenkönig etc.)
+          <div style={{ flex: 1, minWidth: 200, background: 'var(--pitch-bg)', borderRadius: 10, padding: '12px 14px', border: '1px solid var(--pitch-border)' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--pitch-muted)', marginBottom: 10, letterSpacing: '0.06em' }}>K.O.-PHASE</div>
+            {[
+              { pts: 10, label: 'Richtiger Sieger' },
+              { pts: 6,  label: 'Richtige Tordifferenz' },
+              { pts: 2,  label: 'Richtiger Heimscore' },
+              { pts: 2,  label: 'Richtiger Gastscore' },
+            ].map(p => (
+              <div key={p.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid var(--pitch-border)' }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: p.pts === 10 ? '#ca8a04' : p.pts === 6 ? 'var(--pitch-green)' : '#60a5fa', width: 24, textAlign: 'center', flexShrink: 0 }}>{p.pts}</span>
+                <span style={{ fontSize: 12, color: 'var(--pitch-muted)' }}>{p.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--pitch-muted)', margin: 0 }}>
+          Plus bis zu <strong style={{ color: '#ca8a04' }}>150 Bonuspunkte</strong> aus Sondertipps — Weltmeister allein gibt <strong style={{ color: '#ca8a04' }}>50 Punkte</strong>
         </p>
       </section>
     </div>
