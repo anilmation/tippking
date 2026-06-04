@@ -61,23 +61,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features */}
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 10, marginBottom: 40 }}>
-        {[
-          { icon: '⚽', title: 'Alle Spiele', desc: 'Gruppenphase bis Final — automatisch aktualisiert' },
-          { icon: '🏆', title: 'Sondertipps', desc: 'Weltmeister, Torschützenkönig und mehr' },
-          { icon: '📊', title: 'Rangliste', desc: 'Echtzeit-Rangliste aller Teilnehmer' },
-          { icon: '🌍', title: 'Flaggen', desc: 'Alle Länder auf Deutsch mit Flagge' },
-          { icon: '🌙', title: 'Dark Mode', desc: 'Automatisch oder manuell' },
-          { icon: '📱', title: 'Responsive', desc: 'Perfekt auf Handy & Desktop' },
-        ].map(f => (
-          <div key={f.title} className="card" style={{ padding: '16px 18px' }}>
-            <div style={{ fontSize: 26, marginBottom: 8 }}>{f.icon}</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, marginBottom: 4, letterSpacing: '0.02em' }}>{f.title}</div>
-            <p style={{ fontSize: 12, color: 'var(--pitch-muted)', margin: 0, lineHeight: 1.5 }}>{f.desc}</p>
-          </div>
-        ))}
-      </section>
+
 
       {/* Punktesystem */}
       <section className="card" style={{ marginBottom: 40, padding: '20px 24px' }}>

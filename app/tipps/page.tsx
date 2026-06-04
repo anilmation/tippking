@@ -5,6 +5,7 @@ import { format, isBefore } from 'date-fns'
 import { de } from 'date-fns/locale'
 import type { Match, Tip, Team } from '@/lib/types'
 import { getCountryName, getFlagUrl } from '@/lib/countries'
+import type { Stage } from '@/lib/points'
 import { useRouter } from 'next/navigation'
 
 type MatchWithTeams = Match & { home_team: Team; away_team: Team }
@@ -281,7 +282,7 @@ export default function TippsPage() {
                         <span style={{ color: 'var(--pitch-muted)', fontWeight: 700 }}>:</span>
                         <input type="number" min={0} max={20} value={p?.away ?? ''} onChange={e => setPendingValue(match.id, 'away', e.target.value)} className="score-input" style={{ width: 44, height: 40, fontSize: 18 }} placeholder="–" />
                         <span style={{ fontSize: 11, color: 'var(--pitch-muted)', flex: 1, lineHeight: 1.4 }}>
-                          🎯 Richtiges Ergebnis = bis zu <strong style={{ color: 'var(--pitch-green)' }}>+3 Bonuspunkte</strong>
+                          🎯 Richtiges Ergebnis = bis zu <strong style={{ color: 'var(--pitch-green)' }}>+{match.stage === 'GROUP' ? '5' : '10'} Bonuspunkte</strong>
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                           {saved === match.id

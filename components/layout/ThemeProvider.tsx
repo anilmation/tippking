@@ -1,29 +1,27 @@
 'use client'
 import { createContext, useContext, useEffect, useState } from 'react'
 
-type Theme = 'light' | 'dark' | 'system'
+type Theme = 'light' | 'dark'
 const ThemeCtx = createContext<{ theme: Theme; setTheme: (t: Theme) => void }>({
-  theme: 'system', setTheme: () => {}
+  theme: 'light', setTheme: () => {}
 })
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system')
+  const [theme, setThemeState] = useState<Theme>('light')
 
   useEffect(() => {
-    const stored = (localStorage.getItem('theme') as Theme) || 'system'
-    setThemeState(stored)
-    applyTheme(stored)
+    // Default: system preference, fallback to light
+    const stored = localStorage.getItem('theme') as Theme | null
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const resolved: Theme = stored ?? (systemDark ? 'dark' : 'light')
+    setThemeState(resolved)
+    document.documentElement.classList.toggle('dark', resolved === 'dark')
   }, [])
 
   function setTheme(t: Theme) {
     setThemeState(t)
     localStorage.setItem('theme', t)
-    applyTheme(t)
-  }
-
-  function applyTheme(t: Theme) {
-    const isDark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-    document.documentElement.classList.toggle('dark', isDark)
+    document.documentElement.classList.toggle('dark', t === 'dark')
   }
 
   return <ThemeCtx.Provider value={{ theme, setTheme }}>{children}</ThemeCtx.Provider>
