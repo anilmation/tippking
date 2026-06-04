@@ -91,7 +91,7 @@ export default function RegelnPage() {
             { icon: '🥇', label: 'Weltmeister', pts: 50 },
             { icon: '🥈', label: 'Vize-Weltmeister', pts: 20 },
             { icon: '🥉', label: 'Platz 3', pts: 20 },
-            { icon: '⚽', label: 'Torschützenkönig', pts: 20 },
+            { icon: '⚽', label: 'Tore des Torschützenkönigs (ohne Elfmeterschiessen)', pts: 20 },
             { icon: '🔢', label: 'Gesamttore im Turnier', pts: 20 },
             { icon: '❓', label: 'Welches Land schiesst die meisten Tore?', pts: 20 },
           ].map((s, i, arr) => (

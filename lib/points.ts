@@ -36,9 +36,9 @@ export function calculatePoints(
 }
 
 export function getMaxPoints(stage: Stage): number {
-  return isKO(stage) ? 20 : 10 // 10+2+2+6 or 5+1+1+3 → wait, let me recalc
-  // KO: 10 + 6 + 2 + 2 = 20 (but diff only if tendency correct, goals independent)
-  // GROUP: 5 + 3 + 1 + 1 = 10
+  // GROUP: 5 (tendency) + 3 (diff) + 1 (home) + 1 (away) = 10 max
+  // KO:    10 (tendency) + 6 (diff) + 2 (home) + 2 (away) = 20 max
+  return isKO(stage) ? 20 : 10
 }
 
 export function getPointsLabel(points: number, stage: Stage = 'GROUP'): string {
