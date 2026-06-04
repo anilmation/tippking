@@ -141,7 +141,7 @@ export default function TippsPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {filtered.map(match => {
           const kickoff = new Date(match.kickoff)
-          const isLocked = isBefore(kickoff, now)
+          const isLocked = isBefore(new Date(kickoff.getTime() - 5 * 60 * 1000), now)
           const isLive = match.status === 'LIVE'
           const isFinished = match.status === 'FINISHED'
           const tip = tips.get(match.id)
