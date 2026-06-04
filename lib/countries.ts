@@ -68,6 +68,12 @@ export const COUNTRIES: Record<string, { name: string; flag: string }> = {
   CRC: { name: 'Costa Rica', flag: 'cr' },
   HON: { name: 'Honduras', flag: 'hn' },
   JAM: { name: 'Jamaika', flag: 'jm' },
+  // Neue WM 2026 Teams
+  BIH: { name: 'Bosnien', flag: 'ba' },
+  HAI: { name: 'Haiti', flag: 'ht' },
+  CUW: { name: 'Curaçao', flag: 'cw' },
+  CPV: { name: 'Kap Verde', flag: 'cv' },
+  COD: { name: 'DR Kongo', flag: 'cd' },
 }
 
 export function getCountryName(code: string): string {
