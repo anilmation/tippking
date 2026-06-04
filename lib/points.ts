@@ -1,52 +1,69 @@
+export type Stage = 'GROUP' | 'R32' | 'R16' | 'QF' | 'SF' | '3RD' | 'FINAL'
+
+const isKO = (stage: Stage) => stage !== 'GROUP'
+
 export function calculatePoints(
   tipHome: number, tipAway: number,
-  realHome: number, realAway: number
+  realHome: number, realAway: number,
+  stage: Stage = 'GROUP'
 ): number {
-  // Exact result: 4 points
-  if (tipHome === realHome && tipAway === realAway) return 4
+  const ko = isKO(stage)
+  const tendencyPts = ko ? 10 : 5
+  const goalPts = ko ? 2 : 1
+  const diffPts = ko ? 6 : 3
 
-  const tipDiff = tipHome - tipAway
+  const tipDiff  = tipHome - tipAway
   const realDiff = realHome - realAway
+  const tipTend  = tipDiff > 0 ? 'H' : tipDiff < 0 ? 'A' : 'D'
+  const realTend = realDiff > 0 ? 'H' : realDiff < 0 ? 'A' : 'D'
 
-  // Correct goal difference (not a draw): 3 points
-  if (tipDiff === realDiff && realDiff !== 0) return 3
+  let points = 0
 
   // Correct tendency
-  const tipTendency = tipDiff > 0 ? 'H' : tipDiff < 0 ? 'A' : 'D'
-  const realTendency = realDiff > 0 ? 'H' : realDiff < 0 ? 'A' : 'D'
-
-  if (tipTendency === realTendency) {
-    // Correct tendency + one correct score: 2 points
-    if (tipHome === realHome || tipAway === realAway) return 2
-    // Correct tendency only: 1 point
-    return 1
+  if (tipTend === realTend) {
+    points += tendencyPts
+    // Correct goal difference (tendency must be correct)
+    if (tipDiff === realDiff) points += diffPts
   }
 
-  return 0
+  // Correct home goals (independent)
+  if (tipHome === realHome) points += goalPts
+
+  // Correct away goals (independent)
+  if (tipAway === realAway) points += goalPts
+
+  return points
 }
 
-export function getPointsLabel(points: number): string {
-  const labels: Record<number, string> = {
-    4: '🎯 Volltreffer',
-    3: '✅ Differenz',
-    2: '👍 Tendenz +',
-    1: '〰️ Tendenz',
-    0: '❌ Daneben',
-  }
-  return labels[points] ?? ''
+export function getMaxPoints(stage: Stage): number {
+  return isKO(stage) ? 20 : 10 // 10+2+2+6 or 5+1+1+3 → wait, let me recalc
+  // KO: 10 + 6 + 2 + 2 = 20 (but diff only if tendency correct, goals independent)
+  // GROUP: 5 + 3 + 1 + 1 = 10
 }
 
-export function getPointsColor(points: number): string {
-  if (points === 4) return 'text-gold-500'
-  if (points >= 2) return 'text-pitch-500'
-  if (points === 1) return 'text-yellow-500'
-  return 'text-red-400'
+export function getPointsLabel(points: number, stage: Stage = 'GROUP'): string {
+  const max = isKO(stage) ? 20 : 10
+  if (points === max) return '🎯 Maximum'
+  if (points >= max * 0.7) return '✅ Super'
+  if (points >= max * 0.4) return '👍 Gut'
+  if (points > 0) return '〰️ Teilweise'
+  return '❌ Kein Punkt'
 }
 
-export const POINT_SYSTEM = [
-  { points: 4, label: 'Genaues Ergebnis', description: 'Exakter Tipp – beide Scores stimmen' },
-  { points: 3, label: 'Richtige Differenz', description: 'Gleiche Tordifferenz, richtige Tendenz' },
-  { points: 2, label: 'Tendenz + Score', description: 'Richtige Tendenz + ein korrekter Score' },
-  { points: 1, label: 'Richtige Tendenz', description: 'Sieg/Unentschieden/Niederlage korrekt' },
-  { points: 0, label: 'Kein Punkt', description: 'Falsche Tendenz' },
+// For display in rules / UI
+export const POINT_SYSTEM_GROUP = [
+  { points: 5, label: 'Richtiger Sieger oder Unentschieden', description: 'Tendenz korrekt — unabhängig vom Ergebnis' },
+  { points: 3, label: 'Richtige Tordifferenz', description: 'Tordifferenz korrekt + Sieger muss stimmen' },
+  { points: 1, label: 'Richtige Anzahl Heim-Tore', description: 'Unabhängig von Tendenz und Differenz' },
+  { points: 1, label: 'Richtige Anzahl Gast-Tore', description: 'Unabhängig von Tendenz und Differenz' },
 ]
+
+export const POINT_SYSTEM_KO = [
+  { points: 10, label: 'Richtiger Sieger', description: 'Gilt auch nach Verlängerung & Elfmeterschiessen' },
+  { points: 6,  label: 'Richtige Tordifferenz', description: 'Tordifferenz korrekt + Sieger muss stimmen' },
+  { points: 2,  label: 'Richtige Anzahl Heim-Tore', description: 'Ergebnis nach 120 Min. (ohne Penaltys)' },
+  { points: 2,  label: 'Richtige Anzahl Gast-Tore', description: 'Ergebnis nach 120 Min. (ohne Penaltys)' },
+]
+
+// Keep for backward compat
+export const POINT_SYSTEM = POINT_SYSTEM_GROUP
